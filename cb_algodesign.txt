@@ -1,0 +1,28 @@
+Pseudocode example for CitiBike Lesson
+Goal is to Design an Algorithm that will collect the difference between two values. 
+
+I think what I need is to write something that is going to return the absolute value between the
+current value and the value directly preceding (or following, depending on ...?). That would
+just give 61 instances of a difference, then how would I summarize those in a way that's meaningful?
+
+I guess if we took the absolute value of each difference between current and following value, 
+then we could sum the units to obtain a score, since activity was determined by bikes in + 
+bikes out. So if the data looked like this:
+
+Minute 0	7
+Minute 1	5
+Minute 2	6
+Minute 3	2
+Minute 4	2
+Minute 5	7
+
+Would return:
+
+Minute 0	. (would return nothing since this is the baseline)
+Minute 1	2
+Minute 2	1
+Minute 3	4
+Minute 4	0
+Minute 5	5
+
+Sum			12 = Activity

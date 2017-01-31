@@ -109,6 +109,9 @@ import sqlite3 as lite
 con = lite.connect('citi_bike.db')
 cur = con.cursor()
 
+#with con:
+#    cur.execute('delete from available_bikes')
+
 with con:
     cur.execute('CREATE TABLE citibike_reference (id INT PRIMARY KEY, totalDocks INT, city TEXT, altitude INT, stAddress2 TEXT, longitude NUMERIC, postalCode TEXT, testStation TEXT, stAddress1 TEXT, stationName TEXT, landMark TEXT, latitude NUMERIC, location TEXT )')
     
