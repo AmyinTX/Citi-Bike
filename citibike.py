@@ -66,12 +66,12 @@ plt.show()
 
 import collections
 
-freq = collections.Counter(df['testStation']) # there are no test stations
+freq_ts = collections.Counter(df['testStation']) # there are no test stations
 
 ##### 2. How many stations are in service?
 ##### There are a total of 655 stations, of which 642 are in service and 23 are not in service. 
 
-freq = collections.Counter(df['statusValue'])
+freq_inserv = print(collections.Counter(df['statusValue']))
 
 ##### 3. What is the mean number of bikes in a station? What is the median?
 ##### The mean number of bikes is 9.5 and the median is 5. When only those stations that are
@@ -132,9 +132,7 @@ station_ids = ['_' + str(x) + ' INT' for x in station_ids]
 #(now with '_' and 'INT' added)
 with con:
     cur.execute("CREATE TABLE available_bikes ( execution_time INT, " +  ", ".join(station_ids) + ");")
-    
-# a package with datetime objects
-import time
+
 
 # a package for parsing a string into a Python datetime object
 from dateutil.parser import parse 
@@ -167,3 +165,73 @@ with con:
 
 
 ##### The code only needs to run for an hour. If it's sleeping every minute, the code only needs to loop 60 times. Find a way of doing this. 
+
+import time
+from dateutil.parser import parse
+import collections
+import sqlite3 as lite
+import requests
+
+con = lite.connect('citi_bike.db')
+cur = con.cursor()
+
+for i in range(60):
+    r = requests.get('http://www.citibikenyc.com/stations/json')
+    exec_time = parse(r.json()['executionTime']).strftime("%s")
+
+    cur.execute('INSERT INTO available_bikes (execution_time) VALUES (?)', (exec_time,))
+
+    for station in r.json()['stationBeanList']:
+        cur.execute("UPDATE available_bikes SET _%d = %d WHERE execution_time = %s" % (station['id'], station['availableBikes'], exec_time))
+    con.commit()
+
+    time.sleep(60)
+
+con.close() #close the database connection when done
+
+import pandas as pd
+import sqlite3 as lite
+
+con=lite.connect('citi_bike.db')
+cur = con.cursor
+
+# start with this line
+df = pd.read_sql_query('select * from available_bikes order by execution_time', con, index_col='execution_time')
+
+#df.to_pickle('/Users/amybrown/Thinkful/Unit_3/Lesson_1/citybike_df.csv') doesn't write file cleanly
+
+hour_change = collections.defaultdict(int)
+for col in df.columns:
+    station_vals = df[col].tolist()
+    station_id = col[1:] #trim the "_"
+    station_change = 0
+    for k,v in enumerate(station_vals):
+        if k < len(station_vals) - 1:
+            station_change += abs(station_vals[k] - station_vals[k+1])
+    hour_change[int(station_id)] = station_change #convert the station id back to integer
+    
+def keywithmaxval(d):
+    """Find the key with the greatest value"""
+    return max(d, key=lambda k: d[k])
+
+# assign the max key to max_station
+max_station = keywithmaxval(hour_change)
+
+#query sqlite for reference information
+
+from datetime import date
+
+con = lite.connect('citi_bike.db')
+cur = con.cursor()
+cur.execute("SELECT id, stationname, latitude, longitude FROM citibike_reference WHERE id = ?", (max_station,))
+data = cur.fetchone()
+print("The most active station is station id %s at %s latitude: %s longitude: %s " % data)
+print("With %d bicycles coming and going in the hour between %s and %s" % (
+    hour_change[max_station],
+    date.fromtimestamp(int(df.index[0])).strftime('%Y-%m-%dT%H:%M:%S'),
+    date.fromtimestamp(int(df.index[-1])).strftime('%Y-%m-%dT%H:%M:%S'),
+))
+
+import matplotlib.pyplot as plt
+plt.bar(hour_change.keys(), hour_change.values())
+plt.show()
